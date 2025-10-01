@@ -9,12 +9,16 @@ const DEFAULTS = {
   freightContribution: 50
 }
 
-// Preset scenarios for comparison
+// Preset scenarios for comparison - comparing dealer cost increases vs transaction fees
 const PRESET_SCENARIOS = [
-  { name: "Standard", transactionFee: 7, freight: 50 },
-  { name: "Low Fee", transactionFee: 5, freight: 50 },
-  { name: "High Fee", transactionFee: 10, freight: 50 },
-  { name: "No Freight", transactionFee: 7, freight: 0 }
+  { name: "Increase Dealer Cost +$10k", dealerCostIncrease: 10000 },
+  { name: "Increase Dealer Cost +$15k", dealerCostIncrease: 15000 },
+  { name: "Increase Dealer Cost +$20k", dealerCostIncrease: 20000 },
+  { name: "2% Transaction Fee", transactionFee: 2, freight: 50 },
+  { name: "3% Transaction Fee", transactionFee: 3, freight: 50 },
+  { name: "5% Transaction Fee", transactionFee: 5, freight: 50 },
+  { name: "7% Transaction Fee", transactionFee: 7, freight: 50 },
+  { name: "7% TX Fee + $50 Freight per $1k", transactionFee: 7, freight: 50 }
 ]
 
 function App() {
@@ -57,10 +61,29 @@ function App() {
   }
 
   // Calculate scenario total
-  const calculateScenarioTotal = (txFee, freight) => {
-    const buyerBase = calculateBuyerBase()
+  const calculateScenarioTotal = (scenario) => {
+    let effectiveDealerCost = dealerCost
+    let txFee = transactionFee
+    let freight = freightContribution
+
+    // Handle dealer cost increase scenarios
+    if (scenario.dealerCostIncrease) {
+      effectiveDealerCost = dealerCost + scenario.dealerCostIncrease
+    }
+
+    // Handle transaction fee scenarios
+    if (scenario.transactionFee !== undefined) {
+      txFee = scenario.transactionFee
+    }
+
+    // Handle freight scenarios
+    if (scenario.freight !== undefined) {
+      freight = scenario.freight
+    }
+
+    const buyerBase = (effectiveDealerCost * buyerPercentage) / 100
     const transactionFeeAmount = (buyerBase * txFee) / 100
-    const freightAmount = (dealerCost / 1000) * freight
+    const freightAmount = (effectiveDealerCost / 1000) * freight
     return buyerBase + transactionFeeAmount + freightAmount
   }
 
@@ -370,6 +393,7 @@ TOTAL BUYER PRICE: ${formatCurrency(total)}`
               <thead>
                 <tr className="bg-gray-100">
                   <th className="p-3 font-semibold border-b-2 border-gray-300">Scenario</th>
+                  <th className="p-3 font-semibold border-b-2 border-gray-300">Dealer Cost</th>
                   <th className="p-3 font-semibold border-b-2 border-gray-300">Transaction Fee %</th>
                   <th className="p-3 font-semibold border-b-2 border-gray-300">Freight ($ per $1,000)</th>
                   <th className="p-3 font-semibold border-b-2 border-gray-300">Total Buyer Price</th>
@@ -380,6 +404,7 @@ TOTAL BUYER PRICE: ${formatCurrency(total)}`
                 {/* Current Scenario */}
                 <tr className="bg-blue-50 font-semibold">
                   <td className="p-3 border-b">Current</td>
+                  <td className="p-3 border-b">{formatCurrency(dealerCost)}</td>
                   <td className="p-3 border-b">{transactionFee}%</td>
                   <td className="p-3 border-b">${freightContribution}</td>
                   <td className="p-3 border-b">{formatCurrency(totalBuyerPrice)}</td>
@@ -388,15 +413,25 @@ TOTAL BUYER PRICE: ${formatCurrency(total)}`
 
                 {/* Preset Scenarios */}
                 {PRESET_SCENARIOS.map((scenario, idx) => {
-                  const scenarioTotal = calculateScenarioTotal(scenario.transactionFee, scenario.freight)
+                  const scenarioTotal = calculateScenarioTotal(scenario)
                   const difference = scenarioTotal - totalBuyerPrice
                   const isLower = difference < 0
+                  const effectiveDealerCost = scenario.dealerCostIncrease ? dealerCost + scenario.dealerCostIncrease : dealerCost
 
                   return (
                     <tr key={idx} className="hover:bg-gray-50">
                       <td className="p-3 border-b">{scenario.name}</td>
-                      <td className="p-3 border-b">{scenario.transactionFee}%</td>
-                      <td className="p-3 border-b">${scenario.freight}</td>
+                      <td className="p-3 border-b">
+                        {scenario.dealerCostIncrease ? (
+                          <span className="text-red-600 font-semibold">
+                            {formatCurrency(effectiveDealerCost)} <span className="text-xs">({formatCurrency(scenario.dealerCostIncrease)} increase)</span>
+                          </span>
+                        ) : (
+                          formatCurrency(dealerCost)
+                        )}
+                      </td>
+                      <td className="p-3 border-b">{scenario.transactionFee !== undefined ? `${scenario.transactionFee}%` : `${transactionFee}%`}</td>
+                      <td className="p-3 border-b">${scenario.freight !== undefined ? scenario.freight : freightContribution}</td>
                       <td className="p-3 border-b">{formatCurrency(scenarioTotal)}</td>
                       <td className={`p-3 border-b font-semibold ${isLower ? 'text-green-600' : difference > 0 ? 'text-red-600' : 'text-gray-600'}`}>
                         {difference === 0 ? '—' : `${isLower ? '-' : '+'}${formatCurrency(Math.abs(difference))}`}
@@ -407,15 +442,25 @@ TOTAL BUYER PRICE: ${formatCurrency(total)}`
 
                 {/* Custom Scenarios */}
                 {customScenarios.map((scenario, idx) => {
-                  const scenarioTotal = calculateScenarioTotal(scenario.transactionFee, scenario.freight)
+                  const scenarioTotal = calculateScenarioTotal(scenario)
                   const difference = scenarioTotal - totalBuyerPrice
                   const isLower = difference < 0
+                  const effectiveDealerCost = scenario.dealerCostIncrease ? dealerCost + scenario.dealerCostIncrease : dealerCost
 
                   return (
                     <tr key={`custom-${idx}`} className="hover:bg-gray-50">
                       <td className="p-3 border-b">{scenario.name}</td>
-                      <td className="p-3 border-b">{scenario.transactionFee}%</td>
-                      <td className="p-3 border-b">${scenario.freight}</td>
+                      <td className="p-3 border-b">
+                        {scenario.dealerCostIncrease ? (
+                          <span className="text-red-600 font-semibold">
+                            {formatCurrency(effectiveDealerCost)} <span className="text-xs">({formatCurrency(scenario.dealerCostIncrease)} increase)</span>
+                          </span>
+                        ) : (
+                          formatCurrency(dealerCost)
+                        )}
+                      </td>
+                      <td className="p-3 border-b">{scenario.transactionFee !== undefined ? `${scenario.transactionFee}%` : `${transactionFee}%`}</td>
+                      <td className="p-3 border-b">${scenario.freight !== undefined ? scenario.freight : freightContribution}</td>
                       <td className="p-3 border-b">{formatCurrency(scenarioTotal)}</td>
                       <td className={`p-3 border-b font-semibold ${isLower ? 'text-green-600' : difference > 0 ? 'text-red-600' : 'text-gray-600'}`}>
                         {difference === 0 ? '—' : `${isLower ? '-' : '+'}${formatCurrency(Math.abs(difference))}`}
@@ -502,7 +547,7 @@ TOTAL BUYER PRICE: ${formatCurrency(total)}`
                 <tbody>
                   {[-2, -1, 0, 1, 2].map((change) => {
                     const newFee = Math.max(0, transactionFee + change)
-                    const scenarioTotal = calculateScenarioTotal(newFee, freightContribution)
+                    const scenarioTotal = calculateScenarioTotal({ transactionFee: newFee, freight: freightContribution })
                     const difference = scenarioTotal - totalBuyerPrice
                     const isLower = difference < 0
                     const isCurrent = change === 0
