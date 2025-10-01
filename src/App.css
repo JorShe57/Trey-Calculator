@@ -1,0 +1,44 @@
+/* Additional component-specific styles */
+/* Main styles are in index.css and handled by Tailwind */
+
+/* Input number styling */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+/* Smooth value transitions */
+.smooth-number {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Custom scrollbar for tables */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Hover effects for info buttons */
+button:hover svg {
+  transform: scale(1.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Keyboard shortcut badge */
+kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875em;
+}
